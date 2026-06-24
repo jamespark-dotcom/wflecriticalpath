@@ -1,937 +1,612 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RTW Critical Path · 2026–27</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Critical Path - Calendar View</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#f1efe9;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1a1a1a;min-height:100vh}
+.shell{max-width:1640px;margin:0 auto;padding:30px 36px 64px}
 
-html, body { min-height: 100%; }
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:#8a8275;margin-bottom:6px}
+.page-title{font-family:'Newsreader',serif;font-size:36px;font-weight:400;color:#1a1a1a;line-height:1.1}
+.tab-switcher{display:flex;background:#e6e1d6;padding:5px;border-radius:9px;gap:5px;align-items:center}
+.tab-btn{padding:8px 18px;border-radius:6px;font:600 13px 'Helvetica Neue',Helvetica,Arial,sans-serif;border:none;cursor:pointer;transition:all .12s;background:transparent;color:#8a8275}
+.tab-btn.active{background:#fffdfb;color:#1a1a1a;box-shadow:0 1px 3px rgba(0,0,0,.14)}
 
-body {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  color: #1a1a1a;
-  background: #f0eee9;
-}
+/* Legend */
+.legend-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;border-bottom:1px solid rgba(0,0,0,0.13);padding-bottom:22px;margin-bottom:24px}
+.legend-label{font-family:ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;color:#a8a092;letter-spacing:.08em}
+.legend-chip{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.legend-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;transition:opacity .12s}
+.legend-name{font-size:12px;color:#1a1a1a;transition:color .12s}
+.legend-chip.muted .legend-swatch{opacity:.25}
+.legend-chip.muted .legend-name{color:rgba(26,26,26,.32);text-decoration:line-through}
+.legend-hint{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#a8a092;margin-left:auto}
 
-/* ── Controls bar ── */
-.controls {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(240,238,233,0.94);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0,0,0,0.10);
-  padding: 10px 28px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
+/* Controls */
+.controls-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.control-group{display:flex;align-items:center;gap:8px;font-size:12px;color:#6f6a60}
+.control-group label{font-family:ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#a8a092}
+.accent-btn{width:18px;height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:border-color .12s;flex-shrink:0}
+.accent-btn.active{border-color:#1a1a1a}
 
-.controls-title {
-  font: 400 15px/1 Newsreader, Georgia, serif;
-  color: #1a1a1a;
-  margin-right: 4px;
-  white-space: nowrap;
-}
+/* ---- CALENDAR VIEW ---- */
+#view-calendar{display:none}
+#view-calendar.active{display:block}
+.cal-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.month-block{background:#fffdfb;border:1px solid rgba(0,0,0,0.07);border-radius:4px;overflow:hidden}
+.month-header{padding:12px 14px 8px;display:flex;align-items:baseline;gap:6px}
+.month-name{font-family:'Newsreader',serif;font-size:22px;font-weight:400;color:#1a1a1a}
+.month-year{font-family:'Newsreader',serif;font-size:14px;font-weight:400;color:#b3ab9c}
+.weekday-row{display:grid;grid-template-columns:repeat(7,1fr);padding:0 14px}
+.weekday-cell{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;color:#a8a092;text-align:center;padding-bottom:4px}
+.month-body{padding:0 14px 14px;position:relative}
+.cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);position:relative;border-top:1px solid rgba(0,0,0,0.08)}
+.cal-day-cell{border-right:1px solid rgba(0,0,0,0.08);padding:2px 0 0 3px}
+.cal-day-cell:last-child{border-right:none}
+.cal-day-cell.out-month{background:rgba(0,0,0,0.018)}
+.cal-day-cell.weekend{background:rgba(0,0,0,0.012)}
+.cal-day-cell.out-month.weekend{background:rgba(0,0,0,0.025)}
+.day-num{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#8a8275;line-height:1;display:inline-block}
+.day-num.out-month{color:#cfc8ba}
+.day-num.today-num{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;color:#fff;font-weight:700;margin:-1px 0 0 -1px;line-height:1}
+.cal-events-layer{position:absolute;left:14px;right:14px;top:0;pointer-events:none}
+.cal-bar{position:absolute;border-radius:3px;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:15px;line-height:15px;padding:0 3px;pointer-events:auto;transition:opacity .12s;cursor:default}
+.cal-bar.partner-bar{background:transparent !important;border-width:1px;border-style:dashed}
+.cal-bar.muted{opacity:.2}
 
-.tab-group {
-  display: flex;
-  gap: 2px;
-  background: rgba(0,0,0,0.07);
-  border-radius: 5px;
-  padding: 2px;
-}
+/* ---- GANTT VIEW ---- */
+#view-gantt{display:none}
+#view-gantt.active{display:block}
+.gantt-wrap{overflow-x:auto}
+.gantt-inner{min-width:1480px;position:relative}
+.gantt-axis-row{display:flex;margin-left:270px;border-bottom:1px solid rgba(0,0,0,0.13);position:relative}
+.gantt-month-col{flex:1;text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;padding:4px 0 6px;color:#a8a092;position:relative;letter-spacing:.04em}
+.gantt-month-col.quarter-start{color:#1a1a1a}
+.gantt-month-col::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:rgba(0,0,0,0.07)}
+.gantt-month-col.quarter-start::before{background:rgba(0,0,0,0.13)}
+.gantt-today-axis{position:absolute;top:0;bottom:0;width:0;border-left:2px dotted var(--accent);pointer-events:none}
+.today-flag{position:absolute;top:2px;left:4px;font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--accent);letter-spacing:.06em;white-space:nowrap;text-transform:uppercase}
+.gantt-cat-header{display:flex;align-items:center;gap:8px;padding:8px 0 6px;border-top:1px solid rgba(0,0,0,0.08);margin-top:2px}
+.gantt-cat-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.gantt-cat-name{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;color:#6f6a60;letter-spacing:.06em}
+.gantt-row{display:flex;align-items:center;height:34px;position:relative;border-top:1px solid rgba(0,0,0,0.05)}
+.gantt-row-label{width:270px;flex-shrink:0;font-size:12.5px;color:#2a2722;padding-right:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-plot{flex:1;position:relative;height:100%;overflow:hidden}
+.gantt-gridlines{position:absolute;top:0;bottom:0;left:0;right:0;display:flex;pointer-events:none}
+.gantt-grid-col{flex:1;border-left:1px solid rgba(0,0,0,0.04)}
+.gantt-grid-col.quarter-start{border-left:1px solid rgba(0,0,0,0.10)}
+.gantt-bar{position:absolute;top:50%;transform:translateY(-50%);height:13px;border-radius:3px;transition:opacity .12s;cursor:default}
+.gantt-bar.partner-bar{background:transparent !important;border-width:1px;border-style:dashed}
+.gantt-bar.muted{opacity:.14}
+.gantt-diamond{position:absolute;top:50%;width:13px;height:13px;transform:translateY(-50%) rotate(45deg);border-radius:2px;transition:opacity .12s;cursor:default}
+.gantt-diamond.muted{opacity:.14}
+.gantt-date-label{position:absolute;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;color:#8a8275;white-space:nowrap;top:50%;transform:translateY(-50%)}
+.gantt-today-plot{position:absolute;top:0;bottom:0;width:0;border-left:2px dotted var(--accent);pointer-events:none;z-index:5}
 
-.tab-btn {
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 5px 13px;
-  border-radius: 3px;
-  font: 600 9.5px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .10em;
-  text-transform: uppercase;
-  color: #6f6a60;
-  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
-  white-space: nowrap;
-}
-.tab-btn:hover { color: #1a1a1a; }
-.tab-btn.active {
-  background: #fffdfb;
-  color: #1a1a1a;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.13);
-}
-
-.sep {
-  width: 1px;
-  height: 18px;
-  background: rgba(0,0,0,0.12);
-  flex-shrink: 0;
-}
-
-.accent-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.accent-label {
-  font: 600 9px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: #8a8275;
-}
-.accent-swatch {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  outline: 1px solid transparent;
-  transition: outline-color 0.1s;
-}
-.accent-swatch.active { outline-color: #1a1a1a; outline-offset: 2px; }
-
-.toggle-group {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.toggle-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  user-select: none;
-}
-.toggle-item input[type="checkbox"] { cursor: pointer; accent-color: #1a1a1a; }
-.toggle-label {
-  font: 500 11px/1 'Helvetica Neue', Helvetica;
-  color: #6f6a60;
-  white-space: nowrap;
-}
-
-/* ── Panels ── */
-.panel { display: none; padding: 28px 28px 52px; }
-.panel.active { display: block; }
-
-/* ── Card ── */
-.card {
-  background: #fffdfb;
-  border: 1px solid rgba(0,0,0,0.09);
-  border-radius: 3px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.06);
-}
-
-/* ══════════════════════════
-   PANEL A — Gantt
-   ══════════════════════════ */
-#panel-a { overflow-x: auto; }
-#panel-a .card { padding: 32px 34px 40px; min-width: 1100px; }
-
-.gantt-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 24px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid rgba(0,0,0,0.13);
-  padding-bottom: 20px;
-}
-.gantt-title { font: 400 32px/1 Newsreader, Georgia, serif; color: #1a1a1a; }
-.gantt-subtitle {
-  font: 400 13px/1.4 'Helvetica Neue', Helvetica;
-  color: #6f6a60;
-  margin-top: 9px;
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  max-width: 680px;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  cursor: pointer;
-  user-select: none;
-  transition: opacity 0.1s;
-}
-.legend-swatch {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  transition: opacity 0.15s;
-}
-.legend-name {
-  font: 500 12px/1 Helvetica, Arial, sans-serif;
-  transition: color 0.15s;
-}
-
-.month-header-row {
-  position: relative;
-  height: 26px;
-  margin-left: 230px;
-  margin-bottom: 2px;
-}
-.month-label {
-  position: absolute;
-  top: 4px;
-  white-space: nowrap;
-  font: 600 10px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .08em;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.gantt-body { position: relative; }
-
-.gantt-overlay {
-  position: absolute;
-  left: 230px;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  pointer-events: none;
-  overflow: visible;
-}
-.month-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 0;
-  border-left: 1px solid;
-}
-.today-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 0;
-  border-left: 2px dotted;
-}
-.today-tag {
-  position: absolute;
-  top: -1px;
-  transform: translateX(-50%);
-  font: 600 9px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .12em;
-  background: #fffdfb;
-  padding: 2px 5px;
-  white-space: nowrap;
-}
-
-.gantt-group-hd {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 14px 0 5px;
-}
-.group-pip {
-  width: 16px;
-  height: 3px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-.group-name-label {
-  font: 600 11px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .13em;
-  text-transform: uppercase;
-  color: #1a1a1a;
-}
-
-.gantt-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.row-label {
-  width: 230px;
-  flex: 0 0 230px;
-  padding-right: 14px;
-  display: flex;
-  align-items: center;
-}
-.row-label span {
-  font: 500 12.5px/1.25 'Helvetica Neue', Helvetica;
-  color: #2a2722;
-}
-.row-track {
-  position: relative;
-  flex: 1 1 auto;
-  height: 100%;
-}
-.gantt-bar {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  border-radius: 5px;
-  min-width: 8px;
-}
-.gantt-diamond {
-  position: absolute;
-  top: 50%;
-  width: 11px;
-  height: 11px;
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-.gantt-date-lbl {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  white-space: nowrap;
-  font: 500 10.5px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .02em;
-  pointer-events: none;
-}
-
-/* ══════════════════════════
-   PANEL B — Calendar
-   ══════════════════════════ */
-#panel-b .card { padding: 32px 34px 30px; }
-
-.cal-title { font: 400 32px/1 Newsreader, Georgia, serif; color: #1a1a1a; }
-.cal-subtitle {
-  font: 400 13px/1.4 'Helvetica Neue', Helvetica;
-  color: #6f6a60;
-  margin-top: 9px;
-  margin-bottom: 22px;
-}
-.quarter-row {
-  display: flex;
-  border-bottom: 1px solid rgba(0,0,0,0.13);
-}
-.quarter-cell {
-  padding: 7px 9px;
-  font: 600 11px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .13em;
-  text-transform: uppercase;
-  color: #8a8275;
-  border-left: 1px solid rgba(0,0,0,0.08);
-}
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(14, minmax(0, 1fr));
-}
-.cal-month {
-  border-left: 1px solid rgba(0,0,0,0.07);
-  padding: 0 7px 12px;
-  min-height: 130px;
-}
-.cal-month-name {
-  font: 600 12px/1 'Helvetica Neue', Helvetica;
-  color: #1a1a1a;
-  padding: 11px 0 9px;
-}
-.cal-month-name .yr { color: #b3ab9c; font-weight: 500; }
-.cal-chips { display: flex; flex-direction: column; gap: 5px; }
-.cal-chip {
-  padding: 6px 7px;
-  border-radius: 2px;
-  transition: opacity 0.15s;
-}
-.cal-chip-date {
-  font: 600 9.5px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .04em;
-  color: #8a8275;
-  margin-bottom: 3px;
-}
-.cal-chip-name {
-  font: 500 11px/1.3 'Helvetica Neue', Helvetica;
-  color: #2a2722;
-}
-
-/* ══════════════════════════
-   PANEL C — Executive
-   ══════════════════════════ */
-#panel-c .card {
-  max-width: 840px;
-  margin: 0 auto;
-  padding: 34px 38px 32px;
-}
-.exec-header {
-  border-bottom: 1px solid rgba(0,0,0,0.13);
-  padding-bottom: 20px;
-  margin-bottom: 8px;
-}
-.exec-title { font: 400 32px/1 Newsreader, Georgia, serif; color: #1a1a1a; }
-.exec-subtitle {
-  font: 400 13px/1.4 'Helvetica Neue', Helvetica;
-  color: #6f6a60;
-  margin-top: 9px;
-}
-.exec-item {
-  display: grid;
-  grid-template-columns: 92px 1fr;
-  gap: 22px;
-  padding: 16px 2px;
-  border-top: 1px solid rgba(0,0,0,0.08);
-  align-items: start;
-}
-.exec-date-col { text-align: right; }
-.exec-day { font: 400 28px/1 Newsreader, Georgia, serif; color: #1a1a1a; }
-.exec-mon {
-  font: 600 10px/1.2 ui-monospace, Menlo, monospace;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: #8a8275;
-  margin-top: 4px;
-}
-.exec-content { display: flex; flex-direction: column; gap: 6px; }
-.exec-team-row { display: flex; align-items: center; gap: 8px; }
-.exec-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.exec-team-name {
-  font: 600 10px/1 ui-monospace, Menlo, monospace;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: #8a8275;
-}
-.exec-name { font: 400 20px/1.2 Newsreader, Georgia, serif; color: #1a1a1a; }
-.exec-date-lbl { font: 400 12.5px/1.4 'Helvetica Neue', Helvetica; color: #6f6a60; }
+/* ---- GLANCE VIEW ---- */
+#view-glance{display:none}
+#view-glance.active{display:block}
+.quarter-band{margin-bottom:32px}
+.quarter-label-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.quarter-label{font-family:ui-monospace,Menlo,monospace;font-size:12px;text-transform:uppercase;color:var(--accent);letter-spacing:.10em;flex-shrink:0}
+.quarter-rule{flex:1;height:1px;background:rgba(0,0,0,0.10)}
+.month-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.month-card{border:1px solid rgba(0,0,0,0.07);border-radius:4px;min-height:120px;background:rgba(0,0,0,0.014);padding:12px}
+.month-card.current-month{border-color:var(--accent);border-width:2px}
+.month-card-header{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
+.card-month-name{font-family:'Newsreader',serif;font-size:19px;font-weight:400;color:#1a1a1a}
+.card-month-year{font-family:'Newsreader',serif;font-size:12px;font-weight:400;color:#b3ab9c}
+.now-pill{font-family:ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#fff;background:var(--accent);padding:2px 7px;border-radius:9px;margin-left:auto;align-self:center}
+.glance-chips{display:flex;flex-direction:column;gap:6px}
+.glance-chip{border-left:3px solid transparent;background:rgba(0,0,0,0.022);padding:7px 9px;border-radius:0 3px 3px 0;cursor:default;transition:opacity .12s}
+.glance-chip.partner-chip{border-left-style:dashed}
+.glance-chip.muted{opacity:.25}
+.chip-date{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#8a8275;margin-bottom:2px}
+.chip-name{font-size:12px;color:#1a1a1a}
+.chip-name.bold{font-weight:700}
+.empty-month{font-size:20px;color:#cfc8ba;text-align:center;padding:16px 0}
 </style>
 </head>
 <body>
-
-<div class="controls">
-  <div class="controls-title">RTW Critical Path</div>
-
-  <div class="tab-group">
-    <button class="tab-btn active" data-tab="a">A · Gantt</button>
-    <button class="tab-btn" data-tab="b">B · Calendar</button>
-    <button class="tab-btn" data-tab="c">C · Executive</button>
+<div class="shell">
+  <div class="header">
+    <div class="header-left">
+      <div class="eyebrow">RTW Critical Path Schedule · Jun 2026 – Dec 2027</div>
+      <h1 class="page-title" id="page-title">Critical Path - Calendar View</h1>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+      <div class="tab-switcher">
+        <button class="tab-btn active" data-tab="calendar">Calendar</button>
+        <button class="tab-btn" data-tab="gantt">Gantt</button>
+        <button class="tab-btn" data-tab="glance">Glance</button>
+      </div>
+      <div class="controls-bar">
+        <div class="control-group">
+          <label>Accent</label>
+          <button class="accent-btn active" data-accent="tan" style="background:oklch(0.62 0.11 60)" title="Tan"></button>
+          <button class="accent-btn" data-accent="blue" style="background:oklch(0.54 0.12 250)" title="Blue"></button>
+          <button class="accent-btn" data-accent="green" style="background:oklch(0.52 0.11 155)" title="Green"></button>
+          <button class="accent-btn" data-accent="plum" style="background:oklch(0.52 0.12 320)" title="Plum"></button>
+        </div>
+        <div class="control-group">
+          <label>Partners</label>
+          <button id="toggle-partner" style="font:600 11px Helvetica;padding:4px 10px;border-radius:5px;border:1px solid rgba(0,0,0,0.15);background:#fffdfb;color:#2a2722;cursor:pointer;transition:all .12s">Show</button>
+        </div>
+      </div>
+    </div>
   </div>
-
-  <div class="sep"></div>
-
-  <div class="accent-group">
-    <span class="accent-label">Accent</span>
-    <div class="accent-swatch active" data-accent="tan"   title="Tan"   style="background:oklch(0.66 0.12 60)"></div>
-    <div class="accent-swatch"        data-accent="blue"  title="Blue"  style="background:oklch(0.58 0.12 250)"></div>
-    <div class="accent-swatch"        data-accent="green" title="Green" style="background:oklch(0.55 0.11 155)"></div>
-    <div class="accent-swatch"        data-accent="plum"  title="Plum"  style="background:oklch(0.55 0.12 320)"></div>
-  </div>
-
-  <div class="sep"></div>
-
-  <div class="toggle-group">
-    <label class="toggle-item">
-      <input type="checkbox" id="show-partner" checked>
-      <span class="toggle-label">Partner Moments</span>
-    </label>
-    <label class="toggle-item">
-      <input type="checkbox" id="compact-mode">
-      <span class="toggle-label">Compact</span>
-    </label>
-  </div>
+  <div class="legend-bar" id="legend-bar"></div>
+  <div id="view-calendar" class="active"></div>
+  <div id="view-gantt"></div>
+  <div id="view-glance"></div>
 </div>
 
-<div class="panel active" id="panel-a"><div class="card"></div></div>
-<div class="panel"        id="panel-b"><div class="card"></div></div>
-<div class="panel"        id="panel-c"><div class="card"></div></div>
-
 <script>
-// ── Timeline bounds ──────────────────────────────────────────────
-const RANGE_START = Date.UTC(2026, 3, 1);   // 1 Apr 2026
-const RANGE_END   = Date.UTC(2027, 5, 1);   // 1 Jun 2027  (past May 31 end)
-const SPAN = RANGE_END - RANGE_START;
-
-function pct(iso) {
-  return (Date.parse(iso + 'T00:00:00Z') - RANGE_START) / SPAN * 100;
-}
-
-const MON  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-const MONl = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function fmt(s, e) {
-  const a = new Date(Date.parse(s + 'T00:00:00Z'));
-  const da = a.getUTCDate(), ma = a.getUTCMonth();
-  if (!e) return da + ' ' + MONl[ma];
-  const b = new Date(Date.parse(e + 'T00:00:00Z'));
-  const db = b.getUTCDate(), mb = b.getUTCMonth();
-  if (ma === mb) return da + '–' + db + ' ' + MONl[ma];
-  return da + ' ' + MONl[ma] + '–' + db + ' ' + MONl[mb];
-}
-
-function fmtShort(s) {
-  const a = new Date(Date.parse(s + 'T00:00:00Z'));
-  return a.getUTCDate() + ' ' + MONl[a.getUTCMonth()];
-}
-
-// ── Teams ────────────────────────────────────────────────────────
-const TEAMS = [
-  { key: 'design',    name: 'Design & Tech',           color: 'oklch(0.58 0.13 35)'  },
-  { key: 'prod',      name: 'Sourcing & Production',   color: 'oklch(0.55 0.08 155)' },
-  { key: 'buying',    name: 'Buying',                  color: 'oklch(0.55 0.10 250)' },
-  { key: 'merch',     name: 'Merch',                   color: 'oklch(0.54 0.12 320)' },
-  { key: 'wholesale', name: 'Wholesale',               color: 'oklch(0.64 0.11 75)'  },
-  { key: 'exec',      name: 'Exec / Cross-functional', color: 'oklch(0.46 0.03 60)'  },
-  { key: 'partner',   name: 'Retail Partner Moments',  color: 'oklch(0.68 0.11 50)'  },
-];
-const TM = Object.fromEntries(TEAMS.map(t => [t.key, t]));
-
-const HARD = new Set([
-  'Tech Pack Deadline', 'SMS Due', 'Market Opens', 'Final Qtys', 'Initial PO Raise'
-]);
-
-// ── Events ───────────────────────────────────────────────────────
-// [name, team, start, end|null, note]
-const EV_RAW = [
-  ['Range Plan Issued',                 'design',    '2026-04-03', null,          ''],
-  ['Creative Design Direction Kick-off','design',    '2026-04-17', null,          ''],
-  ['Tech Pack Deadline',                'design',    '2026-05-22', null,          'August-shutdown product first'],
-  ['Proto Fittings & Comments',         'design',    '2026-06-15', '2026-07-03',  ''],
-  ['Aaron & Katie Styling Review',      'design',    '2026-09-03', '2026-09-04',  ''],
-  ['Design Presentation',               'design',    '2026-09-17', null,          '17th or 18th Sept'],
-  ['SMS Fitting',                       'design',    '2026-09-15', '2026-10-09',  ''],
-
-  ['Proto Due — Aug Shutdown',          'prod',      '2026-06-12', null,          ''],
-  ['Proto Due — Balance',               'prod',      '2026-06-19', null,          ''],
-  ['SMS Ex-Factory — Aug Shutdown',     'prod',      '2026-08-14', null,          'Before factories close'],
-  ['SMS Ex-Factory — Balance',          'prod',      '2026-08-24', null,          ''],
-  ['SMS Due',                           'prod',      '2026-08-28', null,          ''],
-
-  ['Buying & Design Hard Cancel Review','buying',    '2026-09-01', '2026-09-02',  ''],
-  ['Buying Admin',                      'buying',    '2026-09-03', '2026-09-04',  ''],
-  ['Buy Edit & Pricing',                'buying',    '2026-09-09', '2026-09-14',  ''],
-  ['Buying Handover to Merch',          'buying',    '2026-09-15', '2026-09-16',  ''],
-  ['Buying Handover to Wholesale',      'buying',    '2026-09-17', null,          ''],
-  ['Finalise Cost, Margin & Delivery',  'buying',    '2026-10-14', '2026-10-23',  ''],
-  ['Roll Up & Approval to Raise POs',   'buying',    '2026-10-26', '2026-10-27',  ''],
-  ['Initial PO Raise',                  'buying',    '2026-10-27', '2026-10-30',  ''],
-
-  ['Merch Ranging & Qtys',              'merch',     '2026-09-17', '2026-09-23',  ''],
-  ['Order Collation Period',            'merch',     '2026-10-07', '2026-10-12',  ''],
-  ['Final Qtys',                        'merch',     '2026-10-13', null,          ''],
-
-  ['Wholesale Market Prep',             'wholesale', '2026-09-19', '2026-09-22',  ''],
-  ['Market Opens',                      'wholesale', '2026-09-23', null,          '21 Sep if prep done over weekend'],
-  ['Market Closes',                     'wholesale', '2026-10-06', null,          '2 Oct if market opens 21 Sep'],
-
-  ['Product Review (SLT)',              'exec',      '2026-09-07', '2026-09-08',  'CEO, CMO, CCO, Sourcing & Prod Dir, Head of Design, Buying, Merch & Tech'],
-  ['Bank Holiday',                      'exec',      '2026-08-31', null,          ''],
-
-  ['October Prime Day',                 'partner',   '2026-10-08', '2026-10-11',  'Goal: $1M in 4 days'],
-  ['Anniversary Orders Collected',      'partner',   '2026-10-15', null,          'By mid-Oct for May 27 ship'],
-  ['Made For Rack Orders Due',          'partner',   '2026-11-03', null,          '~3 wks after market orders'],
-  ['Blooms Friends & Family',           'partner',   '2026-11-06', '2026-11-09',  'Indicative'],
-  ['Black Friday Promo',                'partner',   '2026-11-27', '2026-11-30',  ''],
-  ['Anniversary Ship Window',           'partner',   '2027-05-01', '2027-05-31',  ''],
-];
-
-// ── Accent palettes ──────────────────────────────────────────────
-const ACC = {
-  tan:   { line: 'oklch(0.66 0.12 60)',   soft: 'oklch(0.66 0.12 60 / 0.22)'   },
-  blue:  { line: 'oklch(0.58 0.12 250)',  soft: 'oklch(0.58 0.12 250 / 0.22)'  },
-  green: { line: 'oklch(0.55 0.11 155)',  soft: 'oklch(0.55 0.11 155 / 0.22)'  },
-  plum:  { line: 'oklch(0.55 0.12 320)',  soft: 'oklch(0.55 0.12 320 / 0.22)'  },
+// ---- DESIGN TOKENS ----
+const ACCENTS = {
+  tan:  'oklch(0.62 0.11 60)',
+  blue: 'oklch(0.54 0.12 250)',
+  green:'oklch(0.52 0.11 155)',
+  plum: 'oklch(0.52 0.12 320)'
 };
 
-// ── Months (Apr 2026 → May 2027, 14 months) ──────────────────────
-const MONTHS = Array.from({ length: 14 }, (_, i) => {
-  const mi = (3 + i) % 12;
-  const yr = 2026 + Math.floor((3 + i) / 12);
-  const s  = new Date(Date.UTC(yr, mi, 1)).toISOString().slice(0, 10);
-  const e  = new Date(Date.UTC(yr, mi + 1, 0)).toISOString().slice(0, 10);
-  return {
-    label: MON[mi], short: MONl[mi], yr, mi,
-    year: String(yr).slice(2),
-    left: pct(s),
-    mid:  (pct(s) + pct(e)) / 2,
-    isQ:  mi % 3 === 0,
-  };
-});
+const CATS = [
+  { key:'market',  name:'AllSaints Wholesale Market', color:'oklch(0.56 0.15 150)', text:'#ffffff', bold:true  },
+  { key:'prep',    name:'Wholesale Market Prep',      color:'oklch(0.74 0.15 150)', text:'#173d22', bold:true  },
+  { key:'due',     name:'Wholesale Due Dates',        color:'oklch(0.66 0.17 50)',  text:'#ffffff', bold:true  },
+  { key:'design',  name:'Product / Design / Fit',     color:'oklch(0.50 0.15 300)', text:'#ffffff', bold:false },
+  { key:'prod',    name:'Production / SMS',           color:'oklch(0.80 0.15 95)',  text:'#3d3210', bold:false },
+  { key:'buying',  name:'Buying / Merch',             color:'oklch(0.52 0.13 255)', text:'#ffffff', bold:false },
+  { key:'partner', name:'Partner Moments',            color:'oklch(0.72 0.11 235)', text:'#13314a', bold:true  }
+];
+const CAT = {};
+CATS.forEach(c => CAT[c.key] = c);
 
-// ── TODAY line ───────────────────────────────────────────────────
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
-const TODAY_PCT = Math.min(Math.max(pct(TODAY_ISO), 0), 100);
+// ---- DATASET ----
+// [name, categoryKey, startISO, endISO|null, note]
+const EV_RAW = [
+  // Market
+  ['Q1 2027 Wholesale Market','market','2026-07-13','2026-07-24',''],
+  ['Q2 2027 Wholesale Market','market','2026-09-23','2026-10-06',''],
+  ['Q3 2027 Wholesale Market — Core Only','market','2026-12-01','2026-12-15',''],
+  ['Q3 2027 Wholesale Market — Fashion','market','2027-01-15','2027-01-30',''],
+  ['Q4 2027 Wholesale Market','market','2027-03-01','2027-03-15',''],
+  ['Q1 2028 Wholesale Market','market','2027-07-13','2027-07-22',''],
+  ['Q2 2028 Wholesale Market','market','2027-09-21','2027-10-07',''],
+  ['Q3 2028 Wholesale Market','market','2027-11-30','2027-12-09',''],
+  // Prep
+  ['Wholesale Market Prep — Q1 27','prep','2026-07-08','2026-07-10',''],
+  ['Wholesale Market Prep — Q2 27','prep','2026-09-19','2026-09-22',''],
+  ['Wholesale Market Prep — Q3 27 Core','prep','2026-11-26','2026-11-30',''],
+  ['Wholesale Market Prep — Q3 27 Fashion','prep','2027-01-11','2027-01-14',''],
+  ['Wholesale Market Prep — Q4 27','prep','2027-02-24','2027-02-28',''],
+  ['Wholesale Market Prep — Q1 28','prep','2027-07-08','2027-07-10',''],
+  ['Wholesale Market Prep — Q2 28','prep','2027-09-16','2027-09-18',''],
+  ['Wholesale Market Prep — Q3 28','prep','2027-11-25','2027-11-27',''],
+  // Due dates (milestones)
+  ['Made for Rack Due — Q1 27','due','2026-08-14',null,'3 wks after market close (24 Jul)'],
+  ['Nordstrom Anniversary Orders Due','due','2026-10-21',null,'2027 Anniversary — for May 27 ship'],
+  ['Made for Rack Due — Q2 27','due','2026-10-27',null,'3 wks after market close (6 Oct)'],
+  ['Made for Rack Due — Q3 27 Core','due','2027-01-05',null,'3 wks after market close (15 Dec)'],
+  ['Made for Rack Due — Q3 27 Fashion','due','2027-02-20',null,'3 wks after market close (30 Jan)'],
+  ['Made for Rack Due — Q4 27','due','2027-04-05',null,'3 wks after market close (15 Mar)'],
+  ['Made for Rack Due — Q1 28','due','2027-08-12',null,'3 wks after market close (22 Jul)'],
+  ['Made for Rack Due — Q2 28','due','2027-10-28',null,'3 wks after market close (7 Oct)'],
+  ['Made for Rack Due — Q3 28','due','2027-12-30',null,'3 wks after market close (9 Dec)'],
+  // Design
+  ['Proto Fittings & Comments','design','2026-06-15','2026-07-03',''],
+  ['Aaron & Katie Styling Review','design','2026-09-03','2026-09-04',''],
+  ['Design Presentation','design','2026-09-17',null,'17th or 18th Sept'],
+  ['SMS Fitting','design','2026-09-15','2026-10-09',''],
+  // Production (milestones)
+  ['SMS Ex-Factory — Aug Shutdown','prod','2026-08-14',null,'Before factories close'],
+  ['SMS Ex-Factory — Balance','prod','2026-08-24',null,''],
+  ['SMS Due','prod','2026-08-28',null,''],
+  // Buying
+  ['Buying & Design Hard Cancel Review','buying','2026-09-01','2026-09-02',''],
+  ['Buying Admin','buying','2026-09-03','2026-09-04',''],
+  ['Buy Edit & Pricing','buying','2026-09-09','2026-09-14',''],
+  ['Buying Handover to Merch','buying','2026-09-15','2026-09-16',''],
+  // Partner Moments (all indicative — TODO replace with confirmed dates)
+  ['Amazon Prime Day','partner','2026-07-08','2026-07-11','Indicative — prior-year dates. TODO: replace with confirmed 2026 dates'],
+  ['Nordstrom Anniversary Sale','partner','2026-07-15','2026-08-02','Indicative — prior-year dates. TODO: replace with confirmed 2026 dates'],
+  ['Amazon October Prime','partner','2026-10-07','2026-10-08','Goal: $1M in 4 days — indicative. TODO: replace with confirmed 2026 dates'],
+  ['Blooms Friends & Family','partner','2026-11-06','2026-11-09','Indicative — prior-year dates. TODO: replace with confirmed 2026 dates'],
+  ['Amazon T12','partner','2026-11-20','2026-12-01','Turkey-12 Black Friday/Cyber — indicative. TODO: replace with confirmed 2026 dates'],
+  ['Amazon Big Spring Sale','partner','2027-03-25','2027-03-31','Indicative — prior-year dates. TODO: replace with confirmed 2027 dates'],
+  ['Amazon Prime Day','partner','2027-07-13','2027-07-16','Indicative — prior-year dates. TODO: replace with confirmed 2027 dates'],
+  ['Nordstrom Anniversary Sale','partner','2027-07-14','2027-08-01','Indicative — prior-year dates. TODO: replace with confirmed 2027 dates'],
+  ['Amazon October Prime','partner','2027-10-06','2027-10-07','Indicative — prior-year dates. TODO: replace with confirmed 2027 dates'],
+  ['Blooms Friends & Family','partner','2027-11-05','2027-11-08','Indicative — prior-year dates. TODO: replace with confirmed 2027 dates'],
+  ['Amazon T12','partner','2027-11-19','2027-11-30','Turkey-12 Black Friday/Cyber — indicative. TODO: replace with confirmed 2027 dates']
+];
 
-// ── Application state ────────────────────────────────────────────
-const state = { hidden: {}, accent: 'tan', showPartner: true, compact: false, activeTab: 'a' };
+// Timeline span (all UTC)
+const S = Date.UTC(2026,5,1);                          // 1 Jun 2026
+const E = Date.UTC(2027,11,31) + 86400000;             // end of 31 Dec 2027
+const SPAN = E - S;
+function pct(iso) { return (Date.parse(iso+'T00:00:00Z') - S) / SPAN * 100; }
 
-// ── Derived events ───────────────────────────────────────────────
-function getEvents() {
+// TODAY from actual current date (UTC)
+const _now = new Date();
+const TODAY_MS = Date.UTC(_now.getUTCFullYear(), _now.getUTCMonth(), _now.getUTCDate());
+const TODAY_ISO = _now.getUTCFullYear()+'-'+String(_now.getUTCMonth()+1).padStart(2,'0')+'-'+String(_now.getUTCDate()).padStart(2,'0');
+
+// ---- STATE ----
+const state = { tab:'calendar', hidden:{}, accent:'tan', showPartner:true };
+
+// ---- UTILS ----
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS_S = ['S','M','T','W','T','F','S'];
+
+function dparse(iso) { return Date.parse(iso+'T00:00:00Z'); }
+function dfmt(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${parseInt(d)} ${MONTHS_S[parseInt(m)-1]} ${y}`;
+}
+function dfmtRange(s,e) { return (!e||s===e) ? dfmt(s) : `${dfmt(s)} – ${dfmt(e)}`; }
+function evTooltip(ev) {
+  const d = ev.ms ? dfmt(ev.s) : dfmtRange(ev.s, ev.e);
+  return `${ev.name}  ·  ${CAT[ev.cat].name}  ·  ${d}${ev.note ? '  —  '+ev.note : ''}`;
+}
+function esc(s) { return s.replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function getEvs() {
   return EV_RAW
     .filter(r => state.showPartner || r[1] !== 'partner')
-    .map(([name, team, s, e, note]) => {
-      const tm = TM[team];
-      const isM = !e;
-      const l = pct(s);
-      const w = isM ? 0 : pct(e) - l;
-      const partner = team === 'partner';
-      const dateLabel = fmt(s, e);
-      const tip = [name, tm.name, dateLabel, note].filter(Boolean).join('  ·  ');
-      const sd = new Date(Date.parse(s + 'T00:00:00Z'));
-      return {
-        name, team, teamName: tm.name, color: tm.color,
-        isM, l, w, partner, dateLabel, tip, note,
-        hard: HARD.has(name),
-        startISO: s,
-        mi: sd.getUTCMonth(),
-        yr: sd.getUTCFullYear(),
-      };
-    });
+    .map(r => ({
+      name: r[0], cat: r[1], s: r[2], e: r[3], note: r[4],
+      ms:  !r[3],
+      sMs: dparse(r[2]),
+      eMs: dparse(r[3]||r[2])
+    }));
 }
 
-// ── Render helpers ───────────────────────────────────────────────
-function h(tag, attrs, ...children) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (k === 'style' && typeof v === 'object') {
-      Object.assign(el.style, v);
-    } else if (k.startsWith('on') && typeof v === 'function') {
-      el.addEventListener(k.slice(2).toLowerCase(), v);
-    } else if (v != null) {
-      el.setAttribute(k, v);
-    }
-  }
-  for (const c of children.flat()) {
-    if (c == null) continue;
-    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
-  }
-  return el;
+function setAccent(k) { document.documentElement.style.setProperty('--accent', ACCENTS[k]); }
+
+// ---- LEGEND ----
+function renderLegend() {
+  const bar = document.getElementById('legend-bar');
+  const cats = CATS.filter(c => state.showPartner || c.key !== 'partner');
+  bar.innerHTML =
+    `<span class="legend-label">Categories</span>` +
+    cats.map(c => `
+      <span class="legend-chip${state.hidden[c.key]?' muted':''}" data-cat="${c.key}" role="button" tabindex="0">
+        <span class="legend-swatch" style="background:${c.color}"></span>
+        <span class="legend-name" style="font-weight:${c.bold?700:500}">${c.name}</span>
+      </span>`).join('') +
+    `<span class="legend-hint">Click a category to mute &nbsp;·&nbsp; dashed = indicative</span>`;
+  bar.querySelectorAll('.legend-chip').forEach(chip => {
+    const toggle = () => { state.hidden[chip.dataset.cat] = !state.hidden[chip.dataset.cat]; render(); };
+    chip.addEventListener('click', toggle);
+    chip.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); toggle(); } });
+  });
 }
 
-// ══════════════════════════════════════════════
-//  RENDER A — Gantt
-// ══════════════════════════════════════════════
-function renderGantt() {
-  const card = document.querySelector('#panel-a .card');
-  const events = getEvents();
-  const acc = ACC[state.accent];
-  const rowH = state.compact ? 28 : 34;
-  const usedTeams = TEAMS.filter(t => state.showPartner || t.key !== 'partner');
-  const LABEL_COL = 230;
+// ---- CALENDAR VIEW ----
+const DAYZONE=19, LANEH=15, LANEGAP=3, BOTTOM=6;
 
-  card.innerHTML = '';
+function mkGrid(evs, yr, mo) {
+  const nDays = new Date(yr, mo+1, 0).getDate();
+  const firstDow = new Date(yr, mo, 1).getDay();
+  const numWeeks = Math.ceil((firstDow + nDays) / 7);
+  const moStart = Date.UTC(yr, mo, 1);
+  const moEnd   = Date.UTC(yr, mo, nDays);
 
-  // Header
-  const legendEl = h('div', { class: 'legend' },
-    ...usedTeams.map(t => {
-      const off = !!state.hidden[t.key];
-      const item = h('div', { class: 'legend-item', 'data-team': t.key },
-        h('span', {
-          class: 'legend-swatch',
-          style: { background: t.color, opacity: off ? '.25' : '1' }
-        }),
-        h('span', {
-          class: 'legend-name',
-          style: {
-            color: off ? 'rgba(26,26,26,.32)' : '#1a1a1a',
-            textDecoration: off ? 'line-through' : 'none'
-          }
-        }, t.name)
-      );
-      item.addEventListener('click', () => {
-        state.hidden[t.key] = !state.hidden[t.key];
-        renderGantt();
-      });
-      return item;
-    })
-  );
-
-  const headerEl = h('div', { class: 'gantt-header' },
-    h('div', {},
-      h('div', { class: 'gantt-title' }, 'RTW Critical Path'),
-      h('div', { class: 'gantt-subtitle' },
-        'Range plan through PO raise · Apr 2026 – May 2027 ship window · click a team to mute · hover any bar for detail'
-      )
-    ),
-    legendEl
-  );
-  card.appendChild(headerEl);
-
-  // Month header row
-  const monthHdr = h('div', {
-    class: 'month-header-row',
-    style: { marginLeft: LABEL_COL + 'px' }
-  },
-    ...MONTHS.map(m =>
-      h('div', {
-        class: 'month-label',
-        style: {
-          left: m.mid + '%',
-          color: m.isQ ? '#1a1a1a' : '#9a9286'
-        }
-      }, m.label + ' ', h('span', { style: { opacity: '.5' } }, '’' + m.year))
-    )
-  );
-  card.appendChild(monthHdr);
-
-  // Gantt body
-  const body = h('div', { class: 'gantt-body' });
-
-  // Overlay: month lines + today
-  const overlay = h('div', {
-    class: 'gantt-overlay',
-    style: { left: LABEL_COL + 'px' }
-  },
-    ...MONTHS.map(m =>
-      h('div', {
-        class: 'month-line',
-        style: {
-          left: m.left + '%',
-          borderLeftColor: m.isQ ? 'rgba(0,0,0,0.13)' : 'rgba(0,0,0,0.05)'
-        }
-      })
-    ),
-    h('div', {
-      class: 'today-line',
-      style: { left: TODAY_PCT + '%', borderLeftColor: acc.line }
-    },
-      h('div', {
-        class: 'today-tag',
-        style: { color: acc.line, left: '0' }
-      }, 'TODAY')
-    )
-  );
-  body.appendChild(overlay);
-
-  // Team groups + rows
-  usedTeams.forEach(t => {
-    const teamEvents = events.filter(ev => ev.team === t.key);
-
-    body.appendChild(
-      h('div', { class: 'gantt-group-hd' },
-        h('span', { class: 'group-pip', style: { background: t.color } }),
-        h('span', { class: 'group-name-label' }, t.name)
-      )
-    );
-
-    teamEvents.forEach(ev => {
-      const op = state.hidden[ev.team] ? 0.12 : 1;
-      const ring = ev.hard ? ('0 0 0 3px ' + acc.soft) : '';
-
-      const row = h('div', { class: 'gantt-row', style: { height: rowH + 'px' } },
-        h('div', {
-          class: 'row-label',
-          style: { width: LABEL_COL + 'px', flex: '0 0 ' + LABEL_COL + 'px' }
-        },
-          h('span', {}, ev.name)
-        ),
-        (() => {
-          const track = h('div', { class: 'row-track' });
-
-          if (ev.isM) {
-            // Diamond milestone
-            const diamond = h('div', {
-              class: 'gantt-diamond',
-              title: ev.tip,
-              style: {
-                left: ev.l + '%',
-                background: ev.partner ? '#fffdfb' : ev.color,
-                border: ev.partner ? ('1.5px dashed ' + ev.color) : 'none',
-                boxShadow: ring,
-                opacity: op,
-              }
-            });
-            track.appendChild(diamond);
-          } else {
-            // Range bar
-            const bar = h('div', {
-              class: 'gantt-bar',
-              title: ev.tip,
-              style: {
-                left: ev.l + '%',
-                width: Math.max(ev.w, 0.4) + '%',
-                height: ev.partner ? '9px' : '10px',
-                background: ev.partner ? 'transparent' : ev.color,
-                border: ev.partner ? ('1.5px dashed ' + ev.color) : 'none',
-                boxShadow: ring,
-                opacity: op,
-              }
-            });
-            track.appendChild(bar);
-          }
-
-          // Date label
-          const labelAt = ev.isM ? ev.l : ev.l + ev.w;
-          const lStyle = {
-            color: 'rgba(26,26,26,' + (state.hidden[ev.team] ? '.18' : '.5') + ')',
-          };
-          if (labelAt > 78) {
-            Object.assign(lStyle, { left: ev.l + '%', transform: 'translate(calc(-100% - 13px),-50%)', top: '50%' });
-          } else {
-            Object.assign(lStyle, { left: labelAt + '%', marginLeft: '11px', top: '50%', transform: 'translateY(-50%)' });
-          }
-          const lbl = h('span', { class: 'gantt-date-lbl', style: lStyle }, ev.dateLabel);
-          track.appendChild(lbl);
-
-          return track;
-        })()
-      );
-      body.appendChild(row);
-    });
+  // Collect segments overlapping this month
+  const segs = [];
+  evs.forEach(ev => {
+    if (ev.sMs > moEnd || ev.eMs < moStart) return;
+    const sDay = Math.max(1, Math.round((ev.sMs - moStart)/86400000) + 1);
+    const eDay = Math.min(nDays, Math.round((ev.eMs - moStart)/86400000) + 1);
+    segs.push({ ev, sDay, eDay, dur: eDay - sDay });
   });
 
-  card.appendChild(body);
+  // Sort: sDay asc, then longer-first
+  segs.sort((a,b) => a.sDay!==b.sDay ? a.sDay-b.sDay : b.dur-a.dur);
+
+  // Lane pack
+  const laneEnds = [];
+  segs.forEach(sg => {
+    let lane = 0;
+    while (laneEnds[lane]!==undefined && laneEnds[lane] >= sg.sDay) lane++;
+    sg.lane = lane;
+    laneEnds[lane] = sg.eDay;
+  });
+  const maxLane = segs.reduce((m,sg) => Math.max(m,sg.lane), -1);
+
+  // Build weeks
+  const weeks = [];
+  for (let w=0; w<numWeeks; w++) {
+    const weekStart = w*7 - firstDow + 1;
+    const weekEnd   = weekStart + 6;
+    const bars = [];
+    segs.forEach(sg => {
+      const oS = Math.max(sg.sDay, weekStart, 1);
+      const oE = Math.min(sg.eDay, weekEnd, nDays);
+      if (oS > oE) return;
+      const colStart = Math.max(oS - weekStart, 0);
+      const colEnd   = Math.min(oE - weekStart, 6);
+      const trueStart = sg.sDay >= weekStart && sg.sDay <= weekEnd;
+      bars.push({ ev:sg.ev, lane:sg.lane, colStart, colEnd, showLabel: trueStart||colStart===0 });
+    });
+    const height = DAYZONE + (maxLane+1)*(LANEH+LANEGAP) + BOTTOM;
+    weeks.push({
+      days: Array.from({length:7},(_,i)=>{
+        const d = weekStart+i;
+        return {
+          d, inMonth: d>=1&&d<=nDays,
+          weekend: i===0||i===6,
+          isToday: d>=1&&d<=nDays && Date.UTC(yr,mo,d)===TODAY_MS
+        };
+      }),
+      bars,
+      height: maxLane>=0 ? height : DAYZONE+BOTTOM
+    });
+  }
+  return { weeks, nDays, firstDow };
 }
 
-// ══════════════════════════════════════════════
-//  RENDER B — Calendar
-// ══════════════════════════════════════════════
 function renderCalendar() {
-  const card = document.querySelector('#panel-b .card');
-  const events = getEvents();
-  card.innerHTML = '';
-
-  card.appendChild(h('div', { class: 'cal-title' }, '2026 – 27 at a Glance'));
-  card.appendChild(h('div', { class: 'cal-subtitle' },
-    'Critical path + retail partner moments, by month. Dashed cards are partner moments (indicative dates).'
-  ));
-
-  const quarters = [
-    { label: "Q2 '26", span: 3 },
-    { label: "Q3 '26", span: 3 },
-    { label: "Q4 '26", span: 3 },
-    { label: "Q1 '27", span: 3 },
-    { label: "Q2 '27", span: 2 },
-  ];
-  const qRow = h('div', { class: 'quarter-row' },
-    ...quarters.map(q =>
-      h('div', { class: 'quarter-cell', style: { flex: q.span + ' 1 0' } }, q.label)
-    )
-  );
-  card.appendChild(qRow);
-
-  const grid = h('div', { class: 'cal-grid' },
-    ...MONTHS.map(m => {
-      const monthEvents = events
-        .filter(ev => ev.mi === m.mi && ev.yr === m.yr)
-        .sort((a, b) => Date.parse(a.startISO) - Date.parse(b.startISO));
-
-      return h('div', { class: 'cal-month' },
-        h('div', { class: 'cal-month-name' },
-          m.short + ' ',
-          h('span', { class: 'yr' }, '’' + m.year)
-        ),
-        h('div', { class: 'cal-chips' },
-          ...monthEvents.map(ev => {
-            const chipStyle = ev.partner
-              ? { border: '1px dashed ' + ev.color, background: '#fffaf2' }
-              : { borderLeft: '3px solid ' + ev.color, background: 'rgba(0,0,0,0.022)' };
-            const chip = h('div', {
-              class: 'cal-chip',
-              title: ev.tip,
-              style: { ...chipStyle, opacity: state.hidden[ev.team] ? '.3' : '1' }
-            },
-              h('div', { class: 'cal-chip-date' }, ev.dateLabel),
-              h('div', { class: 'cal-chip-name' }, ev.name)
-            );
-            return chip;
-          })
-        )
-      );
-    })
-  );
-  card.appendChild(grid);
+  const evs = getEvs();
+  const months = [];
+  for (let y=2026;y<=2027;y++) {
+    for (let m=(y===2026?5:0);m<=(y===2027?11:11);m++) months.push([y,m]);
+  }
+  document.getElementById('view-calendar').innerHTML =
+    `<div class="cal-grid">${months.map(([yr,mo])=>renderMonth(evs,yr,mo)).join('')}</div>`;
 }
 
-// ══════════════════════════════════════════════
-//  RENDER C — Executive milestones
-// ══════════════════════════════════════════════
-function renderExec() {
-  const card = document.querySelector('#panel-c .card');
-  card.innerHTML = '';
+function renderMonth(allEvs, yr, mo) {
+  const visEvs = allEvs.filter(ev => !state.hidden[ev.cat]);
+  const { weeks } = mkGrid(visEvs, yr, mo);
 
-  card.appendChild(
-    h('div', { class: 'exec-header' },
-      h('div', { class: 'exec-title' }, 'Key Dates'),
-      h('div', { class: 'exec-subtitle' },
-        'The moments the SLT needs on the wall — design lock to ship window.'
-      )
-    )
-  );
+  return `
+    <div class="month-block">
+      <div class="month-header">
+        <span class="month-name">${MONTHS[mo]}</span>
+        <span class="month-year">'${String(yr).slice(2)}</span>
+      </div>
+      <div class="weekday-row">${DAYS_S.map(d=>`<div class="weekday-cell">${d}</div>`).join('')}</div>
+      <div class="month-body">
+        ${weeks.map(week => `
+          <div class="cal-week-row" style="height:${week.height}px">
+            ${week.days.map(day=>`
+              <div class="cal-day-cell${day.inMonth?'':' out-month'}${day.weekend?' weekend':''}">
+                ${day.inMonth ? `<span class="day-num${day.isToday?' today-num':''}"${day.isToday?` style="background:var(--accent)"`:''}>${day.d}</span>` : ''}
+              </div>`).join('')}
+            <div class="cal-events-layer">
+              ${week.bars.map(bar=>{
+                const cat = CAT[bar.ev.cat];
+                const muted = state.hidden[bar.ev.cat];
+                const isP = bar.ev.cat==='partner';
+                const top = DAYZONE + bar.lane*(LANEH+LANEGAP);
+                const lp = bar.colStart/7*100;
+                const wp = (bar.colEnd-bar.colStart+1)/7*100;
+                const tt = esc(evTooltip(bar.ev));
+                const label = bar.showLabel ? esc(bar.ev.name) : '';
+                if (isP) return `<div class="cal-bar partner-bar${muted?' muted':''}"
+                  style="left:calc(${lp}% + 3px);width:calc(${wp}% - 6px);top:${top}px;border-color:oklch(0.45 0.13 235);color:${cat.text}"
+                  title="${tt}">${label}</div>`;
+                return `<div class="cal-bar${muted?' muted':''}"
+                  style="left:calc(${lp}% + 3px);width:calc(${wp}% - 6px);top:${top}px;background:${cat.color};color:${cat.text};font-weight:${cat.bold?700:600}"
+                  title="${tt}">${label}</div>`;
+              }).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
 
-  const EX = [
-    ['Range Plan Issued',           'design',    '2026-04-03', null         ],
-    ['Creative Design Kick-off',    'design',    '2026-04-17', null         ],
-    ['Tech Pack Deadline',          'design',    '2026-05-22', null         ],
-    ['Protos Due',                  'prod',      '2026-06-12', '2026-06-19' ],
-    ['SMS Due',                     'prod',      '2026-08-28', null         ],
-    ['Product Review (SLT)',        'exec',      '2026-09-07', '2026-09-08' ],
-    ['Market Opens',                'wholesale', '2026-09-23', null         ],
-    ['Market Closes',               'wholesale', '2026-10-06', null         ],
-    ['October Prime Day',           'partner',   '2026-10-08', '2026-10-11' ],
-    ['Final Qtys',                  'merch',     '2026-10-13', null         ],
-    ['Anniversary Orders Collected','partner',   '2026-10-15', null         ],
-    ['Initial PO Raise',            'buying',    '2026-10-27', '2026-10-30' ],
-    ['Anniversary Ship Window',     'partner',   '2027-05-01', '2027-05-31' ],
-  ];
+// ---- GANTT VIEW ----
+const AXIS_MOS = [];
+for (let y=2026;y<=2027;y++)
+  for (let m=(y===2026?5:0);m<=(y===2027?11:11);m++) AXIS_MOS.push([y,m]);
 
-  EX.forEach(([name, team, s, e]) => {
-    const tm = TM[team] || TEAMS[5];
-    const d  = new Date(Date.parse(s + 'T00:00:00Z'));
+function renderGantt() {
+  const evs = getEvs();
+  const todayPct = (TODAY_MS - S) / SPAN * 100;
+  const showToday = todayPct >= 0 && todayPct <= 100;
 
-    card.appendChild(
-      h('div', { class: 'exec-item' },
-        h('div', { class: 'exec-date-col' },
-          h('div', { class: 'exec-day' }, String(d.getUTCDate())),
-          h('div', { class: 'exec-mon' },
-            MONl[d.getUTCMonth()] + ' ’' + String(d.getUTCFullYear()).slice(2)
-          )
-        ),
-        h('div', { class: 'exec-content' },
-          h('div', { class: 'exec-team-row' },
-            h('span', { class: 'exec-dot', style: { background: tm.color } }),
-            h('span', { class: 'exec-team-name' }, tm.name)
-          ),
-          h('div', { class: 'exec-name' }, name),
-          h('div', { class: 'exec-date-lbl' }, fmt(s, e))
-        )
-      )
-    );
+  const axisHTML = `
+    <div style="display:flex;margin-left:270px;border-bottom:1px solid rgba(0,0,0,0.13);position:relative">
+      ${showToday?`<div class="gantt-today-axis" style="left:${todayPct}%"><span class="today-flag">TODAY</span></div>`:''}
+      ${AXIS_MOS.map(([y,m])=>{
+        const isQ = m===0||m===3||m===6||m===9;
+        return `<div class="gantt-month-col${isQ?' quarter-start':''}">${MONTHS_S[m].toUpperCase()} '${String(y).slice(2)}</div>`;
+      }).join('')}
+    </div>`;
+
+  const gridLines = AXIS_MOS.map(([y,m])=>{
+    const isQ = m===0||m===3||m===6||m===9;
+    return `<div class="gantt-grid-col${isQ?' quarter-start':''}"></div>`;
+  }).join('');
+
+  const todayPlot = showToday ? `<div class="gantt-today-plot" style="left:${todayPct}%"></div>` : '';
+
+  const groups = CATS
+    .filter(c => state.showPartner||c.key!=='partner')
+    .map(cat => ({ cat, evs: evs.filter(ev=>ev.cat===cat.key) }))
+    .filter(g => g.evs.length>0);
+
+  const groupsHTML = groups.map(g => {
+    const rows = g.evs.map(ev => {
+      const muted = state.hidden[ev.cat];
+      const cat = CAT[ev.cat];
+      const isP = ev.cat==='partner';
+      const tt = esc(evTooltip(ev));
+      let plotEl = '';
+
+      if (ev.ms) {
+        const p = pct(ev.s);
+        if (p>=0&&p<=100) {
+          plotEl = `
+            <div class="gantt-diamond${muted?' muted':''}" style="left:calc(${p}% - 6.5px);background:${cat.color}" title="${tt}"></div>
+            <div class="gantt-date-label" style="left:calc(${p}% + 11px)">${dfmt(ev.s)}</div>`;
+        }
+      } else {
+        const p1 = Math.max(0, pct(ev.s));
+        const p2 = Math.min(100, pct(ev.e));
+        if (p2>p1) {
+          const lblR = pct(ev.e) > 80;
+          const dateStr = dfmtRange(ev.s, ev.e);
+          if (isP) {
+            plotEl = `
+              <div class="gantt-bar partner-bar${muted?' muted':''}" style="left:${p1}%;width:${p2-p1}%;border-color:oklch(0.45 0.13 235)" title="${tt}"></div>
+              <div class="gantt-date-label" style="${lblR?`right:calc(${100-p1}% + 4px)`:`left:calc(${p2}% + 4px)`}">${dateStr}</div>`;
+          } else {
+            plotEl = `
+              <div class="gantt-bar${muted?' muted':''}" style="left:${p1}%;width:${p2-p1}%;background:${cat.color}" title="${tt}"></div>
+              <div class="gantt-date-label" style="${lblR?`right:calc(${100-p1}% + 4px)`:`left:calc(${p2}% + 4px)`}">${dateStr}</div>`;
+          }
+        }
+      }
+
+      return `
+        <div class="gantt-row">
+          <div class="gantt-row-label" style="font-weight:${cat.bold?700:400}">${esc(ev.name)}</div>
+          <div class="gantt-plot">
+            <div class="gantt-gridlines">${gridLines}</div>
+            ${todayPlot}
+            ${plotEl}
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div>
+        <div class="gantt-cat-header">
+          <div class="gantt-cat-swatch" style="background:${g.cat.color}"></div>
+          <div class="gantt-cat-name">${g.cat.name}</div>
+        </div>
+        ${rows}
+      </div>`;
+  }).join('');
+
+  document.getElementById('view-gantt').innerHTML = `
+    <div class="gantt-wrap">
+      <div class="gantt-inner">
+        ${axisHTML}
+        ${groupsHTML}
+      </div>
+    </div>`;
+}
+
+// ---- GLANCE VIEW ----
+const QUARTERS = [
+  { label:"Q2 '26", months:[[5,2026]] },
+  { label:"Q3 '26", months:[[6,2026],[7,2026],[8,2026]] },
+  { label:"Q4 '26", months:[[9,2026],[10,2026],[11,2026]] },
+  { label:"Q1 '27", months:[[0,2027],[1,2027],[2,2027]] },
+  { label:"Q2 '27", months:[[3,2027],[4,2027],[5,2027]] },
+  { label:"Q3 '27", months:[[6,2027],[7,2027],[8,2027]] },
+  { label:"Q4 '27", months:[[9,2027],[10,2027],[11,2027]] }
+];
+
+function renderGlance() {
+  const evs = getEvs();
+  const nowMo = _now.getUTCMonth(), nowYr = _now.getUTCFullYear();
+
+  document.getElementById('view-glance').innerHTML = QUARTERS.map(q => {
+    const cards = q.months.map(([mo,yr]) => {
+      const isCurrent = mo===nowMo && yr===nowYr;
+      const moStart = Date.UTC(yr,mo,1);
+      const moEnd   = Date.UTC(yr,mo+1,0);
+      const chips = evs
+        .filter(ev => ev.sMs<=moEnd && ev.eMs>=moStart)
+        .sort((a,b)=>a.sMs-b.sMs);
+
+      const chipsHTML = chips.length===0
+        ? `<div class="empty-month">—</div>`
+        : chips.map(ev => {
+            const cat = CAT[ev.cat];
+            const muted = state.hidden[ev.cat];
+            const isP = ev.cat==='partner';
+            const dateStr = ev.ms ? dfmt(ev.s) : dfmtRange(ev.s,ev.e);
+            const tt = esc(evTooltip(ev));
+            return `<div class="glance-chip${isP?' partner-chip':''}${muted?' muted':''}"
+              style="border-left-color:${cat.color}" title="${tt}">
+              <div class="chip-date">${dateStr}</div>
+              <div class="chip-name${cat.bold?' bold':''}">${esc(ev.name)}</div>
+            </div>`;
+          }).join('');
+
+      return `<div class="month-card${isCurrent?' current-month':''}">
+        <div class="month-card-header">
+          <span class="card-month-name">${MONTHS_S[mo]}</span>
+          <span class="card-month-year">'${String(yr).slice(2)}</span>
+          ${isCurrent?`<span class="now-pill">NOW</span>`:''}
+        </div>
+        <div class="glance-chips">${chipsHTML}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="quarter-band">
+      <div class="quarter-label-row">
+        <span class="quarter-label">${q.label}</span>
+        <div class="quarter-rule"></div>
+      </div>
+      <div class="month-cards">${cards}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---- TABS & RENDER ----
+const TAB_TITLES = {
+  calendar:'Critical Path - Calendar View',
+  gantt:'Critical Path - Gantt View',
+  glance:'Critical Path - Glance View'
+};
+
+function render() {
+  document.getElementById('page-title').textContent = TAB_TITLES[state.tab];
+  document.title = TAB_TITLES[state.tab];
+  renderLegend();
+  ['calendar','gantt','glance'].forEach(t => {
+    document.getElementById('view-'+t).classList.toggle('active', t===state.tab);
   });
+  if (state.tab==='calendar') renderCalendar();
+  else if (state.tab==='gantt') renderGantt();
+  else renderGlance();
 }
 
-// ── Wire up controls ─────────────────────────────────────────────
+// ---- EVENT WIRING ----
+setAccent(state.accent);
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    state.activeTab = btn.dataset.tab;
-    document.querySelectorAll('.tab-btn')
-      .forEach(b => b.classList.toggle('active', b.dataset.tab === state.activeTab));
-    document.querySelectorAll('.panel')
-      .forEach(p => p.classList.toggle('active', p.id === 'panel-' + state.activeTab));
+    state.tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    render();
   });
 });
 
-document.querySelectorAll('.accent-swatch').forEach(el => {
-  el.addEventListener('click', () => {
-    state.accent = el.dataset.accent;
-    document.querySelectorAll('.accent-swatch')
-      .forEach(s => s.classList.toggle('active', s.dataset.accent === state.accent));
-    renderGantt(); // only gantt uses accent
+document.querySelectorAll('.accent-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.accent = btn.dataset.accent;
+    document.querySelectorAll('.accent-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    setAccent(state.accent);
+    render();
   });
 });
 
-document.getElementById('show-partner').addEventListener('change', e => {
-  state.showPartner = e.target.checked;
-  renderAll();
+const togglePartnerBtn = document.getElementById('toggle-partner');
+togglePartnerBtn.addEventListener('click', () => {
+  state.showPartner = !state.showPartner;
+  togglePartnerBtn.textContent = state.showPartner ? 'Show' : 'Hidden';
+  render();
 });
 
-document.getElementById('compact-mode').addEventListener('change', e => {
-  state.compact = e.target.checked;
-  renderGantt();
-});
-
-// ── Initial render ───────────────────────────────────────────────
-function renderAll() {
-  renderGantt();
-  renderCalendar();
-  renderExec();
-}
-
-renderAll();
+render();
 </script>
 </body>
 </html>
