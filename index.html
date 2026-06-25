@@ -49,15 +49,15 @@ body{background:#f1efe9;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
 .month-header{padding:12px 14px 8px;display:flex;align-items:baseline;gap:6px}
 .month-name{font-family:'Newsreader',serif;font-size:22px;font-weight:400;color:#1a1a1a}
 .month-year{font-family:'Newsreader',serif;font-size:14px;font-weight:400;color:#b3ab9c}
-.weekday-row{display:grid;grid-template-columns:repeat(7,1fr);padding:0 14px}
+.weekday-row{display:grid;grid-template-columns:repeat(5,1fr);padding:0 14px}
 .weekday-cell{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;color:#a8a092;text-align:center;padding-bottom:4px}
 .month-body{padding:0 14px 14px;position:relative}
-.cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);position:relative;border-top:1px solid rgba(0,0,0,0.08)}
+.cal-week-row{display:grid;grid-template-columns:repeat(5,1fr);position:relative;border-top:1px solid rgba(0,0,0,0.08)}
 .cal-day-cell{border-right:1px solid rgba(0,0,0,0.08);padding:2px 0 0 3px}
 .cal-day-cell:last-child{border-right:none}
 .cal-day-cell.out-month{background:rgba(0,0,0,0.018)}
-.cal-day-cell.weekend{background:rgba(0,0,0,0.012)}
-.cal-day-cell.out-month.weekend{background:rgba(0,0,0,0.025)}
+.cal-day-cell:not(.out-month){cursor:pointer}
+.cal-day-cell:not(.out-month):hover{background:rgba(0,0,0,0.04)}
 .day-num{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#8a8275;line-height:1;display:inline-block}
 .day-num.out-month{color:#cfc8ba}
 .day-num.today-num{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;color:#fff;font-weight:700;margin:-1px 0 0 -1px;line-height:1}
@@ -352,7 +352,7 @@ const state = { tab:'calendar', hidden:{}, accent:'tan', showPartner:true };
 // ---- UTILS ----
 const MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAYS_S   = ['S','M','T','W','T','F','S'];
+const DAYS_BIZ = ['M','T','W','T','F']; // Mon-Fri only (no weekends in calendar)
 
 function dparse(iso) { return Date.parse(iso+'T00:00:00Z'); }
 function dfmt(iso) {
@@ -385,6 +385,55 @@ function getEvs() {
   return EVENTS.filter(ev => state.showPartner || ev.cat !== 'partner');
 }
 
+// ---- PERSISTENCE ----
+const STORE_KEY = 'rtw-cp-v1';
+const DEFAULT_CAT_KEYS = new Set(['market','prep','due','design','prod','buying','partner']);
+
+function saveState() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      v: 1,
+      events: EVENTS.map(({id,name,cat,s,e,note}) => ({id,name,cat,s,e,note})),
+      customCats: CATS.filter(c => !DEFAULT_CAT_KEYS.has(c.key)),
+      prefs: { tab:state.tab, hidden:state.hidden, accent:state.accent, showPartner:state.showPartner }
+    }));
+  } catch(_) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    // Restore custom categories
+    (data.customCats||[]).forEach(c => { if (!CATS.find(x=>x.key===c.key)) CATS.push(c); });
+    // Restore events (replaces defaults with saved list)
+    if (Array.isArray(data.events) && data.events.length) {
+      EVENTS.length = 0;
+      data.events.forEach(ev => {
+        const numId = parseInt(ev.id||'0');
+        if (!isNaN(numId) && numId > _idSeq) _idSeq = numId;
+        EVENTS.push({
+          id: ev.id||mkId(), name:ev.name, cat:ev.cat, s:ev.s, e:ev.e||null, note:ev.note||'',
+          ms:!ev.e, sMs:dparse(ev.s), eMs:dparse(ev.e||ev.s)
+        });
+      });
+    }
+    // Restore prefs
+    const p = data.prefs||{};
+    if (['calendar','gantt','glance'].includes(p.tab)) state.tab = p.tab;
+    if (p.hidden && typeof p.hidden === 'object') state.hidden = p.hidden;
+    if (p.accent && ACCENTS[p.accent]) state.accent = p.accent;
+    if (typeof p.showPartner === 'boolean') state.showPartner = p.showPartner;
+  } catch(_) {}
+}
+
+function resetDefaults() {
+  if (!confirm('Reset all events and settings to the original defaults?\nAll your changes will be lost.')) return;
+  localStorage.removeItem(STORE_KEY);
+  location.reload();
+}
+
 // ---- LEGEND ----
 function renderLegend() {
   const bar = document.getElementById('legend-bar');
@@ -408,18 +457,22 @@ function renderLegend() {
 // ---- CALENDAR VIEW ----
 const DAYZONE=19, LANEH=15, LANEGAP=3, BOTTOM=6;
 
-function mkGrid(evs, yr, mo) {
+function mkGridBiz(evs, yr, mo) {
   const nDays = new Date(yr, mo+1, 0).getDate();
-  const firstDow = new Date(yr, mo, 1).getDay();
-  const numWeeks = Math.ceil((firstDow + nDays) / 7);
+  const firstDow = new Date(yr, mo, 1).getDay(); // 0=Sun..6=Sat
+  // Day number of the Monday starting the first row (may be ≤ 0 = previous month)
+  let firstMon = 1 + (firstDow === 0 ? -6 : 1 - firstDow);
+  // If the first row's Friday is before day 1 (all out-of-month), skip it
+  if (firstMon + 4 < 1) firstMon += 7;
+  const numWeeks = Math.floor((nDays - firstMon) / 7) + 1;
   const moStart = Date.UTC(yr, mo, 1);
   const moEnd   = Date.UTC(yr, mo, nDays);
 
   const segs = [];
   evs.forEach(ev => {
     if (ev.sMs > moEnd || ev.eMs < moStart) return;
-    const sDay = Math.max(1, Math.round((ev.sMs - moStart)/86400000) + 1);
-    const eDay = Math.min(nDays, Math.round((ev.eMs - moStart)/86400000) + 1);
+    const sDay = Math.round((ev.sMs - moStart)/86400000) + 1;
+    const eDay = Math.round((ev.eMs - moStart)/86400000) + 1;
     segs.push({ ev, sDay, eDay, dur: eDay-sDay });
   });
   segs.sort((a,b) => a.sDay!==b.sDay ? a.sDay-b.sDay : b.dur-a.dur);
@@ -435,26 +488,27 @@ function mkGrid(evs, yr, mo) {
 
   const weeks = [];
   for (let w=0; w<numWeeks; w++) {
-    const weekStart = w*7 - firstDow + 1;
-    const weekEnd   = weekStart + 6;
+    const wMon = firstMon + w*7; // Monday of this row
+    const wFri = wMon + 4;       // Friday of this row
     const bars = [];
     segs.forEach(sg => {
-      const oS = Math.max(sg.sDay, weekStart, 1);
-      const oE = Math.min(sg.eDay, weekEnd, nDays);
-      if (oS > oE) return;
-      const colStart = Math.max(oS - weekStart, 0);
-      const colEnd   = Math.min(oE - weekStart, 6);
-      const trueStart = sg.sDay >= weekStart && sg.sDay <= weekEnd;
-      bars.push({ ev:sg.ev, lane:sg.lane, colStart, colEnd, showLabel:trueStart||colStart===0 });
+      // Clamp segment to Mon-Fri of this row
+      const oS = Math.max(sg.sDay, wMon);
+      const oE = Math.min(sg.eDay, wFri);
+      if (oS > oE) return; // no overlap with this business week
+      const colStart = oS - wMon; // 0-4
+      const colEnd   = oE - wMon; // 0-4
+      const trueStart = sg.sDay >= wMon && sg.sDay <= wFri;
+      bars.push({ ev:sg.ev, lane:sg.lane, colStart, colEnd, showLabel: trueStart||colStart===0 });
     });
-    const height = DAYZONE + (maxLane+1)*(LANEH+LANEGAP) + BOTTOM;
+    const h = DAYZONE + (maxLane+1)*(LANEH+LANEGAP) + BOTTOM;
     weeks.push({
-      days: Array.from({length:7},(_,i) => {
-        const d = weekStart+i;
-        return { d, inMonth:d>=1&&d<=nDays, weekend:i===0||i===6, isToday:d>=1&&d<=nDays&&Date.UTC(yr,mo,d)===TODAY_MS };
+      days: Array.from({length:5}, (_,i) => {
+        const d = wMon + i;
+        return { d, inMonth: d>=1&&d<=nDays, isToday: Date.UTC(yr,mo,d)===TODAY_MS };
       }),
       bars,
-      height: maxLane>=0 ? height : DAYZONE+BOTTOM
+      height: maxLane>=0 ? h : DAYZONE+BOTTOM
     });
   }
   return { weeks };
@@ -470,28 +524,30 @@ function renderCalendar() {
 
   document.getElementById('view-calendar').innerHTML =
     `<div class="cal-grid">${months.map(([yr,mo]) => {
-      const { weeks } = mkGrid(visEvs, yr, mo);
+      const { weeks } = mkGridBiz(visEvs, yr, mo);
       return `
         <div class="month-block">
           <div class="month-header">
             <span class="month-name">${MONTHS[mo]}</span>
             <span class="month-year">'${String(yr).slice(2)}</span>
           </div>
-          <div class="weekday-row">${DAYS_S.map(d=>`<div class="weekday-cell">${d}</div>`).join('')}</div>
+          <div class="weekday-row">${DAYS_BIZ.map(d=>`<div class="weekday-cell">${d}</div>`).join('')}</div>
           <div class="month-body">
             ${weeks.map(week=>`
               <div class="cal-week-row" style="height:${week.height}px">
-                ${week.days.map(day=>`
-                  <div class="cal-day-cell${day.inMonth?'':' out-month'}${day.weekend?' weekend':''}">
+                ${week.days.map((day,di)=>{
+                    const iso=`${yr}-${String(mo+1).padStart(2,'0')}-${String(day.d).padStart(2,'0')}`;
+                    return `<div class="cal-day-cell${day.inMonth?'':' out-month'}"${day.inMonth?` onclick="openCreateOnDate('${iso}')" title="New event on ${iso}"`:''}>
                     ${day.inMonth?`<span class="day-num${day.isToday?' today-num':''}"${day.isToday?' style="background:var(--accent)"':''}>${day.d}</span>`:''}
-                  </div>`).join('')}
+                  </div>`;
+                  }).join('')}
                 <div class="cal-events-layer">
                   ${week.bars.map(bar=>{
                     const cat = catMap[bar.ev.cat] || {color:'#aaa',text:'#fff',bold:false};
                     const muted = state.hidden[bar.ev.cat];
                     const isP = bar.ev.cat==='partner';
                     const top = DAYZONE + bar.lane*(LANEH+LANEGAP);
-                    const lp = bar.colStart/7*100, wp = (bar.colEnd-bar.colStart+1)/7*100;
+                    const lp = bar.colStart/5*100, wp = (bar.colEnd-bar.colStart+1)/5*100;
                     const tt = esc(evTooltip(bar.ev));
                     const label = bar.showLabel ? esc(bar.ev.name) : '';
                     const click = `onclick="editEvent('${bar.ev.id}')"`;
@@ -654,6 +710,7 @@ function render() {
   if (state.tab==='calendar') renderCalendar();
   else if (state.tab==='gantt') renderGantt();
   else renderGlance();
+  saveState(); // persist every change to localStorage
 }
 
 // ---- MODAL LOGIC ----
@@ -675,6 +732,11 @@ function handleCatChange() {
 function updateColorPreview() {
   const hex = document.getElementById('f-cat-color').value;
   document.getElementById('color-preview').style.background = hex;
+}
+
+function openCreateOnDate(iso) {
+  openCreateModal();
+  document.getElementById('f-start').value = iso;
 }
 
 function openCreateModal() {
@@ -783,9 +845,19 @@ function deleteEvent() {
 // ESC key closes modal
 document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
 
-// ---- TABS & CONTROLS ----
+// ---- INIT ----
+// Load saved state first (may override defaults for tab, accent, showPartner, hidden, events)
+loadState();
+
+// Apply accent CSS var
 setAccent(state.accent);
 
+// Sync UI controls to loaded state
+document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab===state.tab));
+document.querySelectorAll('.accent-btn').forEach(b => b.classList.toggle('active', b.dataset.accent===state.accent));
+document.getElementById('toggle-partner').textContent = state.showPartner ? 'Show' : 'Hidden';
+
+// Tab click handlers
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     state.tab = btn.dataset.tab;
@@ -794,6 +866,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// Accent click handlers
 document.querySelectorAll('.accent-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     state.accent = btn.dataset.accent;
@@ -803,13 +876,13 @@ document.querySelectorAll('.accent-btn').forEach(btn => {
   });
 });
 
+// Partner toggle
 document.getElementById('toggle-partner').addEventListener('click', function() {
   state.showPartner = !state.showPartner;
   this.textContent = state.showPartner ? 'Show' : 'Hidden';
   render();
 });
 
-// Initial color preview
 updateColorPreview();
 render();
 </script>
